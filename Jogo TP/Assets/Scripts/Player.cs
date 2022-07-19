@@ -4,6 +4,27 @@ using UnityEngine;
 
 public class Player : MonoBehaviour
 {
+    //Eu acho que usar um enum pra simular uma "máquina de estados" vai ajudar a ter um controle melhor das ações resultantes do movimento do jogador
+    // Da linha 8-26 Tá implementado um sistema pra ficar definido qual que é o estado atual do player, se é no chão, se é deslizando ou se é no ar, sem ter que usar bool; ao invés de bool, usar Enum
+    private enum EstadoAtual
+    {
+        NoChao,
+        Deslizando,
+        NoAr
+    };
+    private EstadoAtual estadoAtual;
+    
+    private void DefineEstadoAtualPlayer(){
+        if(Physics2D.BoxCast(player_col.bounds.center, player_col.bounds.size, 0f, Vector2.down, 0.05f,platforms)){
+            estadoAtual = EstadoAtual.Nochao;
+        }
+        if((Physics2D.BoxCast(player_col.bounds.center, player_col.bounds.size, 0f, Vector2.left, 0.05f, platforms)) || (Physics2D.BoxCast(player_col.bounds.center, player_col.bounds.size, 0f, Vector2.right, 0.05f, platforms))){
+            estadoAtual = EstadoAtual.Deslizando;
+        }
+        else{
+        estadoAtual = EstadoAtual.NoAr;
+    }
+    
     public Rigidbody2D player_rb;
     public float speed;
     private float direction;
@@ -37,15 +58,16 @@ public class Player : MonoBehaviour
             jump_request = true;
             StartCoroutine(QueueJump());
         }
-        if((IsGrounded()) && (player_rb.velocity.y == 0) && (player_rb.velocity.x == 0))
+        if(estadoAtual == EstadoAtual.NoChao) && (player_rb.velocity.y == 0) && (player_rb.velocity.x == 0))
         {
             direction *= -1;
         }
     }
     private void FixedUpdate()
     {
+        DefineEstadoAtualPlayer();
         player_rb.velocity = new Vector2(speed * direction, player_rb.velocity.y);
-        if((jump_request) && ((IsGrounded()) || (IsSliding())))
+        if((jump_request) && ((estadoAtual == EstadoAtual.NoChao) || (estadoAtual == EstadoAtual.Deslizando)))
         {
             if(IsSliding())
             {
@@ -54,7 +76,7 @@ public class Player : MonoBehaviour
             player_rb.velocity = new Vector2(player_rb.velocity.x, jump_velocity);
             jump_request = false;
         }
-        if(IsSliding())
+        if(estadoAtual == EstadoAtual.NoChao)
         {
             if(player_rb.velocity.y > 0)
             {
